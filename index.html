@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sten, Sax och påse</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Add a field to take player name -->
+    <div class="container">
+      <h1>Sten, Sax och påse</h1>
+      <h1 id="name"></h1>
+      <form>
+        <input
+          id="playerName"
+          class="player-name"
+          type="text"
+          name="playerName"
+          placeholder="Ange ditt namn"
+        />
+        <button id="submitButton" type="button" onClick="getUserName()">
+          Starta spelet
+        </button>
+      </form>
+    </div>
+    <section>
+      <button id="rock">Sten</button>
+      <button id="scissor">Sax</button>
+      <button id="paper">Påse</button>
+    </section>
+    <h1 id="winner">Välj ditt vapen!</h1>
+    <div id="endGame"></div>
+    <div id="highscores"><h1>Höga poäng: </h1></div>
+
+    <script src="script.js"></script>
+  </body>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-app.js";
+    import {
+      getFirestore,
+      setDoc,
+      addDoc,
+      doc,
+      updateDoc,
+      deleteDoc,
+      getDoc,
+      query,
+      collection,
+      where,
+      getDocs,
+      onSnapshot,
+    } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyBji5k9_gwpVV0tnBi2yCAdw5RhtW3Lkcc",
+      authDomain: "rock-paper-scissor-1ea2e.firebaseapp.com",
+      projectId: "rock-paper-scissor-1ea2e",
+      storageBucket: "rock-paper-scissor-1ea2e.appspot.com",
+      messagingSenderId: "257285952338",
+      appId: "1:257285952338:web:98b9d355d09512b187e08b",
+      measurementId: "G-WCFKC0YZGS",
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+
+
+    document.getElementById("endGame").addEventListener("click", async function () {
+      const stats = document.getElementById("winner").innerHTML;
+      const newWin = stats.split(":")[1];
+      const win = newWin.replace(/[^0-9]/g, "");
+
+      const newLoss = stats.split(":")[2];
+      const loss = newLoss.replace(/[^0-9]/g, "");
+
+      const newDraw = stats.split(":")[3];
+      const draw = newDraw.replace(/[^0-9]/g, "");
+
+      const name = document.getElementById("name").innerHTML;
+      const newName = name.replace("Välkommen ", "");
+
+        const q = query(collection(db, "highscore"), where("username", "==", newName));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+          await addDoc(collection(db, "highscore"), {
+            username: newName,
+            wins: parseInt(win),
+            losses: parseInt(loss),
+            draws: parseInt(draw),
+          });
+
+        } else {
+            querySnapshot.forEach((doce) => {
+            let id = doce.id;
+            let username = doce.data().username;
+            let oldWins = parseInt(doce.data().wins) + parseInt(win);
+            let oldLosses = parseInt(doce.data().losses) + parseInt(loss);
+            let oldDraws = parseInt(doce.data().draws) + parseInt(draw);
+            updateDoc(doc(db, "highscore", id), {
+              username: username,
+              wins: parseInt(oldWins),
+              losses: parseInt(oldLosses),
+              draws: parseInt(oldDraws),
+              });
+          });
+        }
+        resetGame();
+      document.getElementById("endGame").style.display = "none";
+      document.getElementById("winner").innerHTML = "";
+      document.getElementById("name").innerHTML = "";
+
+    });
+
+    
+    const highscores = document.getElementById("highscores");
+    const q = query(collection(db, "highscore"), where("wins", ">", 0));
+    const querySnapshot = await getDocs(q);
+    const sortedDocs = querySnapshot.docs.sort((a, b) => {
+      return b.data().wins - a.data().wins;
+    });
+    sortedDocs.forEach((doc) => {
+      highscores.innerHTML += `<h4>${doc.data().username}: ${doc.data().wins} vinster, ${doc.data().losses} förluster, ${doc.data().draws} drar</h4>`;
+    });
+    
+  </script>
+</html>
